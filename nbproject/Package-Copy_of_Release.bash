@@ -7,14 +7,14 @@
 # Macros
 TOP=`pwd`
 CND_PLATFORM=GNU-Linux
-CND_CONF=Release
+CND_CONF=Copy_of_Release
 CND_DISTDIR=dist
 CND_BUILDDIR=build
 CND_DLIB_EXT=so
 NBTMPDIR=${CND_BUILDDIR}/${CND_CONF}/${CND_PLATFORM}/tmp-packaging
 TMPDIRNAME=tmp-packaging
-OUTPUT_PATH=${CND_CONF}/margolusca
-OUTPUT_BASENAME=margolusca
+OUTPUT_PATH=${CND_CONF}/margolusca32
+OUTPUT_BASENAME=margolusca32
 PACKAGE_TOP_DIR=margolusca-src-master/
 
 # Functions

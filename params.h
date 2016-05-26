@@ -21,13 +21,15 @@ enum Param {
     param_extra,
     param_retention,
     param_print,
-    param_testrun
+    param_testrun,
+    param_noJson
 };
 
 // uses this
 Param GetParam(char* value) {
     string s = value;
     if (s == "--help")                return param_help;
+    if (s == "--no-field-data")       return param_noJson;
     if (s == "--version")             return param_version;
     if (s == "--name")                return param_name;
     if (s == "--path")                return param_path;

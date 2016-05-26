@@ -4,6 +4,7 @@
 #include "cell.h"
 #include "types.h"
 
+
 struct Sizes {
     Sizes(uint x = 0, uint y = 0, uint z = 0) : x(x), y(y), z(z) { }
     
@@ -75,6 +76,8 @@ public:
     uint Adsorbed() const;
     void ImportSubs(CellularAutomata * CA);
     unsigned long long iteration = 0;
+    
+  
     
 protected:
     uint adsorbLayer = 0;

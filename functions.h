@@ -218,7 +218,10 @@ void PrintHalfOutput(cchar* fileName, double tick = 0.5) {
     for (int i = 1; i < head.size(); ++i) {
         maxValue.push_back(stoi(head[i]));
     }
-    int halfs[maxValue.size()] = { 0 };
+
+    int halfs[maxValue.size()];
+for (int i = 0; i < maxValue.size(); i++)
+halfs[i]=0;
     do {
         getline(in, line);
         head = split(line, '\t');

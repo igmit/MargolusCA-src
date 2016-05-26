@@ -1,19 +1,24 @@
 #include "margolus_base.h"
+#include <fstream>
+#include <iostream>
+#include <cereal/archives/json.hpp>
+#include <cereal/access.hpp>
 
-//#include <iostream>
 //#include <omp.h>
 //#define foreach(T, c, i) for(T::iterator i = c.begin(); i!=c.end(); ++i)
 
-Margolus::Margolus() : Margolus(1, 1, 1) { }
+Margolus::Margolus() : Margolus(1, 1, 1) {
+}
 
-Margolus::Margolus(Sizes sizes) : Margolus(sizes.x, sizes.y, sizes.z) { }
+Margolus::Margolus(Sizes sizes) : Margolus(sizes.x, sizes.y, sizes.z) {
+}
 
 Margolus::Margolus(cuint& sizeX, cuint& sizeY, cuint sizeZ)
-        : CellularAutomata(sizeX, sizeY, sizeZ) {
+: CellularAutomata(sizeX, sizeY, sizeZ) {
     blocks[0].rotate = UnMoved;
-    memset(blocks[0].move, 0, sizeof(blocks[0].move));
+    memset(blocks[0].move, 0, sizeof (blocks[0].move));
     blocks3D[0].rotate = UnMoved3;
-    memset(blocks3D[0].move, 0, sizeof(blocks3D[0].move));
+    memset(blocks3D[0].move, 0, sizeof (blocks3D[0].move));
 }
 
 Margolus::~Margolus() {
@@ -27,7 +32,7 @@ Margolus::~Margolus() {
 }
 
 void Margolus::Calculation(cuint& dx, cuint& dy, cuint& dz) {
-//#pragma omp parallel for
+    //#pragma omp parallel for
     for (uint ix = dx; ix < GetSizeX() - 1; ix += 2) {
         for (uint iy = dy; iy < GetSizeY() - 1; iy += 2) {
             for (uint iz = dz; iz < GetSizeZ() - 1; iz += 2) {
@@ -37,7 +42,7 @@ void Margolus::Calculation(cuint& dx, cuint& dy, cuint& dz) {
                 blockSize3D = 1;
                 CreateRotateNotBlock3D(blocks3D[0], ix, iy, iz);
                 if (modifierMove && CheckMod(ix, iy, iz)) {
-                    if (CheckActive (ix, iy)) {
+                    if (CheckActive(ix, iy)) {
                         if (CheckCanRotate3D(ClockWiceX, ix, iy, iz)) {
                             CreateRotateBlock3D(blocks3D[blockSize3D], ClockWiceX, ix, iy, iz, false, true);
                             ++blockSize3D;
@@ -135,7 +140,7 @@ void Margolus::Calculation(cuint& dx, cuint& dy, cuint& dz) {
                 }
                 //normalization
                 double sumProbability = 0.0;
-                double rnd = (double)(rand()) / RAND_MAX;
+                double rnd = (double) (rand()) / RAND_MAX;
                 for (uint i = 0; i < blockSize3D; ++i) {
                     sumProbability += blocks3D[i].energy / Z;
                     if (rnd <= sumProbability) {
@@ -149,7 +154,13 @@ void Margolus::Calculation(cuint& dx, cuint& dy, cuint& dz) {
 }
 
 void Margolus::Calculation(cuint& dx, cuint& dy) {
-//#pragma omp parallel for
+
+    vector<DataObj> data;
+
+    if (saveFlag)
+        this->saveField(dx, dy, false);
+
+    #pragma omp parallel for
     for (uint ix = dx; ix < GetSizeX() - 1; ix += 2) {
         for (uint iy = dy; iy < GetSizeY() - 1; iy += 2) {
             if (CheckEmpty(ix, iy)) {
@@ -159,7 +170,7 @@ void Margolus::Calculation(cuint& dx, cuint& dy) {
             blockSize = 1;
             CreateRotateNotBlock(blocks[0], ix, iy);
             if (modifierMove && CheckMod(ix, iy)) {
-                if (CheckActive (ix, iy)) {
+                if (CheckActive(ix, iy)) {
                     if (CheckCanClockWice(ix, iy)) {
                         CreateRotateBlock(blocks[blockSize], ClockWice, ix, iy, false, true);
                         ++blockSize;
@@ -187,12 +198,12 @@ void Margolus::Calculation(cuint& dx, cuint& dy) {
                     CreateRotateBlock(blocks[blockSize], ClockWice, ix, iy);
                     ++blockSize;
                 }
-                if (CheckCanCounterClockWice(ix, iy))  {
+                if (CheckCanCounterClockWice(ix, iy)) {
                     CreateRotateBlock(blocks[blockSize], CounterClockWice, ix, iy);
                     ++blockSize;
                 }
             }
-            
+
             double Z = 0.0;
             // + Energy
             for (uint i = 0; i < blockSize; ++i) {
@@ -202,16 +213,152 @@ void Margolus::Calculation(cuint& dx, cuint& dy) {
             }
             //normalization
             double sumProbability = 0.0;
-            double rnd = (double)(rand()) / RAND_MAX;
+            double rnd = (double) (rand()) / RAND_MAX;
+
             for (uint i = 0; i < blockSize; ++i) {
                 sumProbability += blocks[i].energy / Z;
                 if (rnd <= sumProbability) {
+
+                    data.push_back(DataObj(ix, iy, vector<Block>(blocks, blocks + sizeof blocks / sizeof blocks[0]), i));
+
                     ChangeBlock(blocks[i], ix, iy);
                     break;
                 }
             }
+
         }
     }
+
+
+    if (saveFlag && saveJsonFlag) {
+
+        string name = std::to_string(this->iteration) + "_" + std::to_string(this->subIteration) + "_"
+                + std::to_string(dx) + std::to_string(dy)
+                + ".json";
+
+        std::ofstream os(this->path + "blocks" + name);
+        {
+            cereal::JSONOutputArchive archive(os); // stream to cout
+
+            archive(
+                    cereal::make_nvp("data", data),
+                    cereal::make_nvp("energy", energy),
+                    cereal::make_nvp("energyCell", energyCell),
+                    cereal::make_nvp("steamEnergy_", *steamEnergy_)
+
+                    );
+        }
+
+    }
+
+    subIteration++;
+
+}
+
+void Margolus::saveField(int dx, int dy, bool init) {
+
+    int solidCount = 0;
+    int boundaryLayerCount = 0;
+    int adsorbedCount = 0;
+
+    int activeCount = 0;
+
+    vector<string> substances;
+    vector<FieldCell> field;
+
+    for (pSub & sub : subs) {
+        substances.push_back(sub->GetName());
+    }
+
+    Cell curCell;
+
+    for (uint ix = 0; ix < this->GetSizeX(); ++ix) {
+        for (uint iy = 0; iy < this->GetSizeY(); ++iy) {
+            for (uint iz = 0; iz < this->GetSizeZ(); ++iz) {
+
+                curCell = cells[ix][iy][iz];
+
+                if (saveJsonFlag && curCell.GetSubCount() > 0)
+                    field.push_back(FieldCell(ix, iy, curCell));
+
+                if (subIteration > 0)
+                    continue;
+
+                if (curCell.HaveSolid()) {
+                    ++solidCount;
+                }
+
+                if (curCell.HaveActive())
+                    activeCount++;
+
+                if (curCell.HaveActive()) {
+                    if (ix != 0 && GetCell(ix - 1, iy, iz).HaveSolid()) {
+                        ++adsorbedCount;
+                    } else if (iy != 0 && GetCell(ix, iy - 1, iz).HaveSolid()) {
+                        ++adsorbedCount;
+                    } else if (iz != 0 && GetCell(ix, iy, iz - 1).HaveSolid()) {
+                        ++adsorbedCount;
+                    } else if (ix != this->GetSizeX() - 1 && GetCell(ix + 1, iy, iz).HaveSolid()) {
+                        ++adsorbedCount;
+                    } else if (iy != this->GetSizeY() - 1 && GetCell(ix, iy + 1, iz).HaveSolid()) {
+                        ++adsorbedCount;
+                    } else if (iz != this->GetSizeZ() - 1 && GetCell(ix, iy, iz + 1).HaveSolid()) {
+                        ++adsorbedCount;
+                    }
+                }
+
+                if (!curCell.HaveSolid()) {
+                    if (ix != 0 && GetCell(ix - 1, iy, iz).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    } else if (iy != 0 && GetCell(ix, iy - 1, iz).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    } else if (iz != 0 && GetCell(ix, iy, iz - 1).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    } else if (ix != this->GetSizeX() - 1 && GetCell(ix + 1, iy, iz).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    } else if (iy != this->GetSizeY() - 1 && GetCell(ix, iy + 1, iz).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    } else if (iz != this->GetSizeZ() - 1 && GetCell(ix, iy, iz + 1).HaveSolid()) {
+                        ++boundaryLayerCount;
+                    }
+                }
+
+            }
+        }
+    }
+
+    if (subIteration == 0) {
+        statisticsData.push_back(StatisticsRecord(iteration, solidCount, boundaryLayerCount, adsorbedCount, activeCount));
+    }
+
+    if (saveJsonFlag) {
+
+        string name;
+
+        if (!init)
+            name = std::to_string(this->iteration) + "_" + std::to_string(this->subIteration) + "_"
+            + std::to_string(dx) + std::to_string(dy)
+            + ".json";
+        else
+            name = "_init.json";
+
+        std::ofstream fields(this->path + "fields" + name);
+        {
+            cereal::JSONOutputArchive archive(fields); // stream to cout
+
+            archive(
+                    //cereal::make_nvp("subcount", subs.size()),
+                    cereal::make_nvp("substances", substances),
+
+                    cereal::make_nvp("field", field)
+
+                    );
+
+
+
+        }
+    }
+
 }
 
 void Margolus::SetTempPtr(double* pointer) {
@@ -240,7 +387,7 @@ void Margolus::SetEnergy(const string& name1, const string& name2,
         double* energyH, double* energyS) {
     for (Energy & en : energy) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             en.energyH = energyH;
             en.energyS = energyS;
             return;
@@ -270,11 +417,11 @@ vector<Energy> Margolus::GetEnergies() const {
 vector<Energy> Margolus::GetEnergiesCell() const {
     return energyCell;
 }
-    
+
 double Margolus::GetEnergy(const string& name1, const string& name2) {
     for (Energy & en : energy) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return en.energy;
         }
     }
@@ -284,7 +431,7 @@ double Margolus::GetEnergy(const string& name1, const string& name2) {
 double Margolus::GetEnergyH(const string& name1, const string& name2) {
     for (Energy & en : energy) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return *en.energyH;
         }
     }
@@ -294,7 +441,7 @@ double Margolus::GetEnergyH(const string& name1, const string& name2) {
 double Margolus::GetEnergyS(const string& name1, const string& name2) {
     for (Energy & en : energy) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return *en.energyS;
         }
     }
@@ -305,7 +452,7 @@ void Margolus::SetEnergyCell(const string& name1, const string& name2,
         double* energyH, double* energyS) {
     for (Energy & en : energyCell) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             en.energyH = energyH;
             en.energyS = energyS;
             return;
@@ -331,7 +478,7 @@ void Margolus::AddEnergyCell(Energy & en) {
 double Margolus::GetEnergyCell(const string& name1, const string& name2) {
     for (Energy & en : energyCell) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return en.energy;
         }
     }
@@ -341,7 +488,7 @@ double Margolus::GetEnergyCell(const string& name1, const string& name2) {
 double Margolus::GetEnergyHCell(const string& name1, const string& name2) {
     for (Energy & en : energyCell) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return *en.energyH;
         }
     }
@@ -351,7 +498,7 @@ double Margolus::GetEnergyHCell(const string& name1, const string& name2) {
 double Margolus::GetEnergySCell(const string& name1, const string& name2) {
     for (Energy & en : energyCell) {
         if ((en.name1 == name1 && en.name2 == name2)
-                || (en.name1 == name2 && en.name2 == name1) ) {
+                || (en.name1 == name2 && en.name2 == name1)) {
             return *en.energyS;
         }
     }
@@ -405,7 +552,7 @@ void Margolus::PrintParameters() const {
 
 void Margolus::PrintBlock(Block& block) const {
     cout << "\n";
-    for(uint x = 0; x < 2; ++x) {
+    for (uint x = 0; x < 2; ++x) {
         for (uint y = 0; y < 2; ++y) {
             cout << " - ";
             for (pSub sub : block.cells[x][y].GetSubs()) {
@@ -433,7 +580,7 @@ bool Margolus::CheckEmpty(cuint& ix, cuint& iy) const {
                 return false;
             } else if (cells[x + ix][y + iy][0].HaveActive()) {
                 return false;
-            }  
+            }
         }
     }
     return true;
@@ -567,7 +714,7 @@ void Margolus::PareEnergyFull(Cell& cellIn, Cell& cellOut, double& energy) {
 
 double Margolus::CalculationBlockEnergy(const Block& block, cuint& ix, cuint& iy) {
     double sumEnergy = 0.0;
-    
+
     Cell cellIn, cellOut;
     //x gran 1
     if (ix > 0) {
@@ -611,20 +758,20 @@ double Margolus::CalculationBlockEnergy(const Block& block, cuint& ix, cuint& iy
         cellOut = block.cells[indexF[i + 1][0]][indexF[i + 1][1]];
         PareEnergyFull(cellIn, cellOut, sumEnergy);
     }
-    
+
     if (!moveForward || block.move[movement] > 0) {
         sumEnergy += block.move[movement] * *steamEnergy_;
     }
-    
+
     return sumEnergy;
 }
 
 double Margolus::CalculationBlockEnergy(const Block3D& block, cuint& ix,
         cuint& iy, cuint& iz) {
     double sumEnergy = 0.0;
-    
+
     Cell cellIn, cellOut;
-    
+
     //x gran 1
     if (ix > 0) {
         for (uint z = 0; z < 2; ++z) {
@@ -685,7 +832,7 @@ double Margolus::CalculationBlockEnergy(const Block3D& block, cuint& ix,
             PareEnergy(cellIn, cellOut, sumEnergy);
         }
     }
-    
+
     //inside block
     for (uint i = 0; i < 4; ++i) {
         for (uint z = 0; z < 2; ++z) {
@@ -699,11 +846,11 @@ double Margolus::CalculationBlockEnergy(const Block3D& block, cuint& ix,
             PareEnergyFull(cellIn, cellOut, sumEnergy);
         }
     }
-    
+
     if (!moveForward || block.move[movement] > 0) {
         sumEnergy += block.move[movement] * *steamEnergy_;
     }
-    
+
     return sumEnergy;
 }
 
@@ -732,7 +879,7 @@ void Margolus::CreateRotateNotBlock3D(Block3D & block, cuint& ix, cuint& iy, cui
 void Margolus::CreateRotateBlock(Block & block, Rotate rotate, cuint& ix,
         cuint& iy, bool act, bool mod) {
     block.rotate = rotate;
-    memset(block.move, 0, sizeof(block.move));
+    memset(block.move, 0, sizeof (block.move));
     // front
     for (uint x = 0; x < 2; ++x) {
         for (uint y = 0; y < 2; ++y) {
@@ -761,7 +908,7 @@ void Margolus::CreateRotateBlock(Block & block, Rotate rotate, cuint& ix,
                         }
                     }
                 }
-            
+
                 if (cell.HaveModifier()) {
                     if (mod) {
                         for (pSub & sub : cell.GetSubs()) {
@@ -802,7 +949,7 @@ void Margolus::CreateRotateBlock(Block & block, Rotate rotate, cuint& ix,
                         }
                     }
                 }
-            
+
                 if (cell.HaveModifier()) {
                     if (mod) {
                         for (pSub & sub : cell.GetSubs()) {
@@ -829,7 +976,7 @@ void Margolus::CreateRotateBlock(Block & block, Rotate rotate, cuint& ix,
             }
         }
     }
-   
+
     for (uint x = 0; x < 2; ++x) {
         for (uint y = 0; y < 2; ++y) {
             for (pSub & sub : block.cells[x][y].GetSubs()) {
@@ -845,7 +992,7 @@ void Margolus::CreateRotateBlock(Block & block, Rotate rotate, cuint& ix,
 void Margolus::CreateRotateBlock3D(Block3D & block, Rotate3D rotate, cuint& ix,
         cuint& iy, cuint& iz, bool act, bool mod) {
     block.rotate = rotate;
-    memset(block.move, 0, sizeof(block.move));
+    memset(block.move, 0, sizeof (block.move));
     // front
     for (uint x = 0; x < 2; ++x) {
         for (uint y = 0; y < 2; ++y) {
@@ -861,7 +1008,7 @@ void Margolus::CreateRotateBlock3D(Block3D & block, Rotate3D rotate, cuint& ix,
             }
         }
     }
-    
+
     switch (rotate) {
         case ClockWiceX:
             for (uint x = 0; x < 2; ++x) {
@@ -930,7 +1077,7 @@ void Margolus::CreateRotateBlock3D(Block3D & block, Rotate3D rotate, cuint& ix,
                                     if (sub->GetType() == MODIFIER) {
                                         int u = 1;
                                         while (true) {
-                                            if (cells[ix+ x][iy + indexB[i + u][0]][iz + indexB[i + u][1]].HaveSolid()) {
+                                            if (cells[ix + x][iy + indexB[i + u][0]][iz + indexB[i + u][1]].HaveSolid()) {
                                                 ++u;
                                             } else {
                                                 block.cells[x][indexB[i + u][0]][indexB[i + u][1]].AddSub(sub);
@@ -1128,7 +1275,7 @@ void Margolus::CreateRotateBlock3D(Block3D & block, Rotate3D rotate, cuint& ix,
             }
             break;
     }
-    
+
     for (uint x = 0; x < 2; ++x) {
         for (uint y = 0; y < 2; ++y) {
             for (uint z = 0; z < 2; ++z) {

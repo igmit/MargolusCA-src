@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fstream>
-#include <png.h>
+//#include <png.h>
 #include <vector>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -18,8 +18,12 @@
 #include "params.h"
 #include "types.h"
 #include "versioncheck.h"
-#include "mysqlconnect.h"
+//#include "mysqlconnect.h"
 #include "functions.h"
+
+#include <cereal/archives/json.hpp>
+#include <cereal/access.hpp>
+
 
 using namespace std;
 //#define _WIN32
@@ -162,6 +166,12 @@ margolus_model GetMargolusModel (string value) {
 
 class Main {
 public:
+    
+    bool saveFieldJsonFlag = true;
+    uint totalSteps = 0;
+    string saveDirectory;
+    
+    
     Main() { }
     ~Main() { delete defCAM; }
     
@@ -196,40 +206,40 @@ public:
             return (EXIT_FAILURE);
         }
 
-        try {
-            string version = cfg.lookup("version");
-            cout << "Configuration version: " << version << endl;
-            int checker = -1;
-            checkConfigVersion(version, checker);
-            switch (checker) {
-                case 0:
-                    cerr << "Old program version or new config version!\n";
-                    cerr << "program version: " << program_version << endl;
-                    cerr << "config  version: " << version << endl;
-                    cerr << "Application break\n";
-                    goodLoad = false;
-                    return EXIT_FAILURE;
-                    break;
-                case 1:
-                    cerr << "Old configuration\n";
-                    cerr << "program version: " << program_version << endl;
-                    cerr << "config  version: " << version << endl;
-                    cerr << "Application continue load\n";
-                    break;
-                case 2:
-                    // all ok!
-                    break;
-                default:
-                    cerr << "Error " << checker << " check version\n";
-                    cerr << "program version: " << program_version << endl;
-                    cerr << "config  version: " << version << endl;
-                    goodLoad = false;
-                    break;
-            }
-        } catch (const SettingNotFoundException &nfex) {
-            cerr << "No 'version' setting in configuration file.\n";
-            goodLoad = false;
-        }
+//        try {
+//            string version = cfg.lookup("version");
+//            cout << "Configuration version: " << version << endl;
+//            int checker = -1;
+//            checkConfigVersion(version, checker);
+//            switch (checker) {
+//                case 0:
+//                    cerr << "Old program version or new config version!\n";
+//                    cerr << "program version: " << program_version << endl;
+//                    cerr << "config  version: " << version << endl;
+//                    cerr << "Application break\n";
+//                    goodLoad = false;
+//                    return EXIT_FAILURE;
+//                    break;
+//                case 1:
+//                    cerr << "Old configuration\n";
+//                    cerr << "program version: " << program_version << endl;
+//                    cerr << "config  version: " << version << endl;
+//                    cerr << "Application continue load\n";
+//                    break;
+//                case 2:
+//                    // all ok!
+//                    break;
+//                default:
+//                    cerr << "Error " << checker << " check version\n";
+//                    cerr << "program version: " << program_version << endl;
+//                    cerr << "config  version: " << version << endl;
+//                    goodLoad = false;
+//                    break;
+//            }
+//        } catch (const SettingNotFoundException &nfex) {
+//            cerr << "No 'version' setting in configuration file.\n";
+//            goodLoad = false;
+//        }
         
         try {
             string name = cfg.lookup("name");
@@ -311,20 +321,20 @@ public:
         try {
             const Setting &database = root["mysqldatabase"];
             if (database.lookupValue("enable", useMySQL)) {
-                if (useMySQL) {
-                    connectDetails connects;
-                    if (database.lookupValue("server", connects.server) &&
-                            database.lookupValue("user", connects.user) &&
-                            database.lookupValue("password", connects.password) &&
-                            database.lookupValue("database", connects.database) &&
-                            database.lookupValue("table", connects.table)) {
-                        mySQL = new MySQL(connects);
-                        if (mySQL->ConnectTest().GetStatus() != SQL_OK) {
-                            cerr << "MySQL connection Error!\n";
-                            useMySQL = false;
-                        }
-                    }
-                }
+//                if (useMySQL) {
+//                    connectDetails connects;
+//                    if (database.lookupValue("server", connects.server) &&
+//                            database.lookupValue("user", connects.user) &&
+//                            database.lookupValue("password", connects.password) &&
+//                            database.lookupValue("database", connects.database) &&
+//                            database.lookupValue("table", connects.table)) {
+//                        mySQL = new MySQL(connects);
+//                        if (mySQL->ConnectTest().GetStatus() != SQL_OK) {
+//                            cerr << "MySQL connection Error!\n";
+//                            useMySQL = false;
+//                        }
+//                    }
+//                }
             } else {
                 useMySQL = false;
             }
@@ -747,10 +757,10 @@ public:
                     goodLoad = false;
                 }
             }
-            if (useMySQL && !checkSQL) {
-                cerr << "Empty or lost inside parameter in 'statistics'.\n";
-                goodLoad = false;
-            }
+//            if (useMySQL && !checkSQL) {
+//                cerr << "Empty or lost inside parameter in 'statistics'.\n";
+//                goodLoad = false;
+//            }
         } catch (const SettingNotFoundException &nfex) {
             cerr << "No 'statistics' setting in configuration file.\n";
             goodLoad = false;
@@ -919,68 +929,71 @@ public:
             }
         }*/
         std::mutex mut;
+        
 #pragma omp parallel for num_threads(threads) shared (mut)
         for (uint listthis = 0; listthis < listcount; ++listthis) {
-            cout << (listthis + 1) << " >> " << listcount << " ...\n";
+           
             //check first!
             //string idNote = "";
             if (useMySQL) {
-                string table = mySQL->GetTable();//varcalcs[0].getTableNameSort();
-                time_t rawtime;
-                time(&rawtime);
-                struct tm * timeinfo = localtime(&rawtime);
-                int year  = timeinfo->tm_year + 1900;
-                int month = timeinfo->tm_mon + 1;
-                int day   = timeinfo->tm_mday;
+//                string table = mySQL->GetTable();//varcalcs[0].getTableNameSort();
+//                time_t rawtime;
+//                time(&rawtime);
+//                struct tm * timeinfo = localtime(&rawtime);
+//                int year  = timeinfo->tm_year + 1900;
+//                int month = timeinfo->tm_mon + 1;
+//                int day   = timeinfo->tm_mday;
+//                
+//                if (table == "") {
+//                    table = "table-" + to_string(year) + "-" + to_string(month)
+//                            + "-" +  to_string(day);
+//                    mySQL->SetTable(table);
+//                }
+//                // check table exist
+//                {
+//                    // if not exist - create table
+//                    string query = "CREATE TABLE IF NOT EXISTS `" + table + "` ("
+//                            "`id` int(11) NOT NULL AUTO_INCREMENT, ";
+//                    if (retention) {
+//                        query += "`H` double NOT NULL, "
+//                                "`S` double NOT NULL, "
+//                                "`T` double NOT NULL, "
+//                                "`porosity` double NOT NULL, "
+//                                "`flow` double NOT NULL, "
+//                                "`summVol` int(11) NOT NULL, "
+//                                "`solidVol` int(11) NOT NULL, "
+//                                "`layerVol` int(11) NOT NULL, "
+//                                "`adsorbVol` int(11) NOT NULL, "
+//                                "`active` int(11) NOT NULL, "
+//                                "`activeVol` int(11) NOT NULL, "
+//                                "`K` double NOT NULL, ";
+//                    } else if (extra) {
+//                        query += "`H` double NOT NULL, "
+//                                "`S` double NOT NULL, "
+//                                "`T` double NOT NULL, "
+//                                "`porosity` double NOT NULL, "
+//                                "`flow` double NOT NULL, ";
+//                        for (uint & p : points) {
+//                            query += "`leng" + to_string(p) + "` double NOT NULL, ";
+//                        }
+//                    } else {
+//                        for (var & v : vars) {
+//                            query += "`" + v.getName() + "` double NOT NULL, ";
+//                        }
+//                        query += "`time` int(11) NOT NULL, ";
+//                    }
+//                    query += "PRIMARY KEY (`id`)"
+//                            ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;";
+//                    mut.lock();
+//                    SQLResult res = mySQL->Execute(query);
+//                    mut.unlock();
+//                    if (res.GetStatus() != SQL_OK) {
+//                        cerr << " MySQL error in create: " << res.GetMessage() << endl;
+//                        continue;
+//                    }
+//                }
                 
-                if (table == "") {
-                    table = "table-" + to_string(year) + "-" + to_string(month)
-                            + "-" +  to_string(day);
-                    mySQL->SetTable(table);
-                }
-                // check table exist
-                {
-                    // if not exist - create table
-                    string query = "CREATE TABLE IF NOT EXISTS `" + table + "` ("
-                            "`id` int(11) NOT NULL AUTO_INCREMENT, ";
-                    if (retention) {
-                        query += "`H` double NOT NULL, "
-                                "`S` double NOT NULL, "
-                                "`T` double NOT NULL, "
-                                "`porosity` double NOT NULL, "
-                                "`flow` double NOT NULL, "
-                                "`summVol` int(11) NOT NULL, "
-                                "`solidVol` int(11) NOT NULL, "
-                                "`layerVol` int(11) NOT NULL, "
-                                "`adsorbVol` int(11) NOT NULL, "
-                                "`active` int(11) NOT NULL, "
-                                "`activeVol` int(11) NOT NULL, "
-                                "`K` double NOT NULL, ";
-                    } else if (extra) {
-                        query += "`H` double NOT NULL, "
-                                "`S` double NOT NULL, "
-                                "`T` double NOT NULL, "
-                                "`porosity` double NOT NULL, "
-                                "`flow` double NOT NULL, ";
-                        for (uint & p : points) {
-                            query += "`leng" + to_string(p) + "` double NOT NULL, ";
-                        }
-                    } else {
-                        for (var & v : vars) {
-                            query += "`" + v.getName() + "` double NOT NULL, ";
-                        }
-                        query += "`time` int(11) NOT NULL, ";
-                    }
-                    query += "PRIMARY KEY (`id`)"
-                            ") ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;";
-                    mut.lock();
-                    SQLResult res = mySQL->Execute(query);
-                    mut.unlock();
-                    if (res.GetStatus() != SQL_OK) {
-                        cerr << " MySQL error in create: " << res.GetMessage() << endl;
-                        continue;
-                    }
-                }
+                /// old one
                 
                 /*string idQuery = "select `id` from `" + table + "` where ";
                 for (uint i = 0; i < vars.size(); ++i) {
@@ -1010,7 +1023,7 @@ public:
                 //idNote = data.GetData(0, 0);
             }
             cout << "Create directory\n";
-            string saveDirectory = varcalcs[listthis].dir + "//";
+            saveDirectory = varcalcs[listthis].dir + "//";
             mkDir(saveDirectory);
             // set values
             cout << "Set variables values\n";
@@ -1277,12 +1290,17 @@ public:
                 }
                 SaveStatistics(CAM, saveDirectory, false);
                 Save2dImageToFile(CAM, saveDirectory, CAM->iteration, CAM->GetSizeZ() / 2);
+                
+                
             }
             //calculation
             // 2D
+            CAM->path = saveDirectory;
+            CAM->saveJsonFlag = saveFieldJsonFlag;
             
             if (CAM->GetSizeZ() == 1) {
                 while (!CAM->finished) {
+                    
                     /* add mod */
                     if (modifierMove) {
                         for (pSub & sub : CAM->GetSubs()) {
@@ -1309,6 +1327,9 @@ public:
                             CAM->Calculation(1, 1);
                             break;
                         case 1:
+                            CAM->subIteration = 0;
+                            CAM->saveFlag = CAM->iteration % saveStep == 0;
+                            
                             CAM->Calculation(0, 0);
                             CAM->Calculation(0, 1);
                             CAM->Calculation(1, 0);
@@ -1350,7 +1371,8 @@ public:
 
                     if (CAM->iteration % saveStep == 0) {
                         SaveFieldToFile(CAM, saveDirectory, CAM->iteration);
-                        Save2dImageToFile(CAM, saveDirectory, CAM->iteration, CAM->GetSizeZ() / 2);
+                        if (!saveFieldJsonFlag)
+                            Save2dImageToFile(CAM, saveDirectory, CAM->iteration, CAM->GetSizeZ() / 2);
                     }
                     if (retention) {
                         // check to exit
@@ -1402,9 +1424,15 @@ public:
                                 break;
                         }
                     }
+                    
+                    // shared_ptr<Margolus> my_ptr(CAM);
+                   // output( my_ptr);
+                    //my_ptr.reset();
+                    //os.close();
                 }
             } else {
                 while (!CAM->finished) {
+                    
                     /* add mod */
                     if (modifierMove) {
                         for (pSub & sub : CAM->GetSubs()) {
@@ -1525,92 +1553,159 @@ public:
                                 break;
                         }
                     }
+                   
                 }
             }
+            
+            ofstream statisticsStream;
+            statisticsStream.open(saveDirectory + "plots.txt", ios_base::trunc);
+            
+            uint fieldSize = CAM->GetVolume();
+            
+            for (int i = 0; i < CAM->statisticsData.size(); i++){
+                StatisticsRecord sR = CAM->statisticsData.at(i);
+                
+                statisticsStream << sR.iteration << ",";
+                statisticsStream << sR.solidCount << ",";
+                statisticsStream << sR.boundaryLayerCount << ",";
+                statisticsStream << sR.adsorbedCount << ",";
+                statisticsStream << sR.activeCount << ",";
+                statisticsStream << fieldSize << ",";
+                
+                int cChromotography = i > 0 ? CAM->statisticsData.at(i - 1).activeCount - sR.activeCount : 0;
+                statisticsStream << cChromotography << ",";
+                
+                double cMobilePhase = (double)(sR.activeCount - sR.adsorbedCount) / (fieldSize - sR.solidCount - sR.boundaryLayerCount);
+                double cSolidPhase = (double) ((double)sR.adsorbedCount / (double)sR.boundaryLayerCount);
+                
+                double K = cSolidPhase > 0 ? (double)(cMobilePhase / cSolidPhase)  : 0;
+                
+                statisticsStream << K;
+                statisticsStream << "\n";
+                
+            }
+            
+            statisticsStream.close();
+            
+            
             // save last state
-            SaveFieldToFile(CAM, saveDirectory, CAM->iteration);
-            Save2dImageToFile(CAM, saveDirectory, CAM->iteration, CAM->GetSizeZ() / 2);
+            //SaveFieldToFile(CAM, saveDirectory, CAM->iteration);
+            //Save2dImageToFile(CAM, saveDirectory, CAM->iteration, CAM->GetSizeZ() / 2);
             if (useMySQL) {
-                string path = saveDirectory + "//" + outpath;
-                int times[points.size()] = { };
-                int time = OutPickTime(CAM, path.c_str(), times);
-                cout << time << endl;
+//                string path = saveDirectory + "//" + outpath;
+//                int times[points.size()];
+//
+//                int time = OutPickTime(CAM, path.c_str(), times);
+//                cout << time << endl;
                 // calculate out time
-                string table = mySQL->GetTable();
-                string query = "insert into `" + table + "` (";
-                if (retention) {
-                    query += "`H`, `S`, `T`, `porosity`, `flow`";
-                    query += ", `summVol`, `solidVol`, `layerVol`, `adsorbVol`, `active`, `activeVol`, `K`";
-                    query += ") values (";
-                    string ux = varcalcs[listthis].getValue("{H}");
-                    if (ux == "") {
-                        ux = "0";
-                    }
-                    query += "'" + ux + "'";
-                    ux = varcalcs[listthis].getValue("{S}");
-                    if (ux == "") {
-                        ux = "0";
-                    }
-                    query += ", '" + ux + "'";
-                    query += ", '" + to_string(CAM->GetTemperature()) + "'";
-                    query += ", '" + to_string(1 - (double)CAM->SolidCount() / CAM->GetVolume()) + "'";
-                    query += ", '" + to_string(CAM->GetSteamEnergy()) + "'";
-                    int ret[6] = { };
-                    //ret[0] // summVol
-                    //ret[1] // solidVol
-                    //ret[2] // layerVol
-                    //ret[3] // adsorbVol
-                    //ret[4] // active
-                    //ret[5] // activeVol
-                    CalcRetention(CAM, ret);
-                    double c_st = (double)ret[5] / (ret[0] - ret[1] - ret[2]);
-                    double c_m  = (double)ret[3] / ret[2];
-                    double k = c_st / c_m;
-                    for (int & p : ret) {
-                        query += ", '" + to_string(p) + "'";
-                    }
-                    query += ", '" + to_string(k) + "'";
-                    query += ")";
-                } else if (extra) {
-                    query += "`H`, `S`, `T`, `porosity`, `flow`";
-                    for (uint & p : points) {
-                        query += ", `leng" + to_string(p) + "`";
-                    }
-                    query += ") values (";
-                    string ux = varcalcs[listthis].getValue("{H}");
-                    if (ux == "") {
-                        ux = "0";
-                    }
-                    query += "'" + ux + "'";
-                    ux = varcalcs[listthis].getValue("{S}");
-                    if (ux == "") {
-                        ux = "0";
-                    }
-                    query += ", '" + ux + "'";
-                    query += ", '" + to_string(CAM->GetTemperature()) + "'";
-                    query += ", '" + to_string(1 - (double)CAM->SolidCount() / CAM->GetVolume()) + "'";
-                    query += ", '" + to_string(CAM->GetSteamEnergy()) + "'";
-                    for (int & p : times) {
-                        query += ", '" + to_string(p) + "'";
-                    }
-                    query += ")";
-                } else {
-                    for (var & v : vars) {
-                        query += "`" + v.getName() + "`, ";
-                    }
-                    query += " `time`) values (";
-                    for (var & v : vars) {
-                        query += "'" + varcalcs[listthis].getValue(v.name) + "', ";
-                    }
-                    query += "'" + to_string(time) + "')";
-                }
-                mut.lock();
-                SQLResult res = mySQL->Execute(query);
-                mut.unlock();
-                if (res.GetStatus() != SQL_OK) {
-                    cerr << " MySQL error: " << res.GetMessage() << endl;
-                    //continue;
-                }
+                //string table = mySQL->GetTable();
+                //string query = "insert into `" + table + "` (";
+//                string query = "insert into `` (";
+//                if (retention) {
+//                   
+//                    query += "`H`, `S`, `T`, `porosity`, `flow`";
+//                    query += ", `summVol`, `solidVol`, `layerVol`, `adsorbVol`, `active`, `activeVol`, `K`";
+//                    query += ") values (";
+//                    string ux = varcalcs[listthis].getValue("{H}");
+//                    if (ux == "") {
+//                        ux = "0";
+//                    }
+//                    query += "'" + ux + "'";
+//                    ux = varcalcs[listthis].getValue("{S}");
+//                    if (ux == "") {
+//                        ux = "0";
+//                    }
+//                    query += ", '" + ux + "'";
+//                    query += ", '" + to_string(CAM->GetTemperature()) + "'";
+//                    query += ", '" + to_string(1 - (double)CAM->SolidCount() / CAM->GetVolume()) + "'";
+//                    query += ", '" + to_string(CAM->GetSteamEnergy()) + "'";
+//                    int ret[6] = { };
+//                    //ret[0] // summVol
+//                    //ret[1] // solidVol
+//                    //ret[2] // layerVol
+//                    //ret[3] // adsorbVol
+//                    //ret[4] // active
+//                    //ret[5] // activeVol
+//                    CalcRetention(CAM, ret);
+//                    double c_st = (double)ret[5] / (ret[0] - ret[1] - ret[2]);
+//                    double c_m  = (double)ret[3] / ret[2];
+//                    double k = c_st / c_m;
+//                    for (int & p : ret) {
+//                        query += ", '" + to_string(p) + "'";
+//                    }
+//                    query += ", '" + to_string(k) + "'";
+//                    query += ")";
+//                    
+//                    std::ofstream os(saveDirectory + "out.json");
+//                    {
+//                        cereal::JSONOutputArchive archive(os); // stream to cout
+//
+//                        archive(
+//                                cereal::make_nvp("H", varcalcs[listthis].getValue("{H}")),
+//                                cereal::make_nvp("S", varcalcs[listthis].getValue("{S}")),
+//                                cereal::make_nvp("T", to_string(CAM->GetTemperature())),
+//                                cereal::make_nvp("porosity", to_string(1 - (double)CAM->SolidCount() / CAM->GetVolume()) ),
+//                                cereal::make_nvp("flow", to_string(CAM->GetSteamEnergy()) ),
+//                                
+//                                cereal::make_nvp("summVol", to_string(ret[0]) ),
+//                                cereal::make_nvp("solidVol", to_string(ret[1]) ),
+//                                cereal::make_nvp("layerVol", to_string(ret[2]) ),
+//                                cereal::make_nvp("adsorbVol", to_string(ret[3]) ),
+//                                cereal::make_nvp("active", to_string(ret[4]) ),
+//                                cereal::make_nvp("activeVol", to_string(ret[5])  ),
+//                                cereal::make_nvp("K", to_string(k))
+//                                );
+//                    }
+//                    
+//                } else if (extra) {
+//                    query += "`H`, `S`, `T`, `porosity`, `flow`";
+//                    for (uint & p : points) {
+//                        query += ", `leng" + to_string(p) + "`";
+//                    }
+//                    query += ") values (";
+//                    string ux = varcalcs[listthis].getValue("{H}");
+//                    if (ux == "") {
+//                        ux = "0";
+//                    }
+//                    query += "'" + ux + "'";
+//                    ux = varcalcs[listthis].getValue("{S}");
+//                    if (ux == "") {
+//                        ux = "0";
+//                    }
+//                    query += ", '" + ux + "'";
+//                    query += ", '" + to_string(CAM->GetTemperature()) + "'";
+//                    query += ", '" + to_string(1 - (double)CAM->SolidCount() / CAM->GetVolume()) + "'";
+//                    query += ", '" + to_string(CAM->GetSteamEnergy()) + "'";
+//                    for (int & p : times) {
+//                        query += ", '" + to_string(p) + "'";
+//                    }
+//                    query += ")";
+//                } else {
+//                    for (var & v : vars) {
+//                        query += "`" + v.getName() + "`, ";
+//                    }
+//                    query += " `time`) values (";
+//                    for (var & v : vars) {
+//                        query += "'" + varcalcs[listthis].getValue(v.name) + "', ";
+//                    }
+//                    query += "'" + to_string(time) + "')";
+//                }
+//                mut.lock();
+//                SQLResult res = mySQL->Execute(query);
+//                mut.unlock();
+//                if (res.GetStatus() != SQL_OK) {
+//                    cerr << " MySQL error: " << res.GetMessage() << endl;
+//                    //continue;
+//                }
+            }
+            std::ofstream os(saveDirectory + "out.json");
+            {
+                cereal::JSONOutputArchive archive(os); // stream to cout
+
+                archive(
+                        cereal::make_nvp("totalSteps", CAM->iteration)
+
+                        );
             }
             delete CAM;
         }
@@ -1755,7 +1850,7 @@ public:
             }
             CAM->finished = false;
             cout << "Run calculation\n";
-            
+          
             //calculation
             // 2D
             if (CAM->GetSizeZ() == 1) {
@@ -2222,64 +2317,64 @@ private:
         }
 
         string path = "map.png";
-        SavePNG(path.c_str(), img, x, y);
+        //SavePNG(path.c_str(), img, x, y);
     }
     
     void SavePNG(cchar* path, uchar* imageData, int width, int height) {
-        FILE *f = fopen(path, "wb");
-        if (!f) {
-            printf("Can't open file! %s", path);
-            return;
-        }
-        png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-        if (!png_ptr) {
-            fclose(f);
-            return;
-        }
-        png_infop png_info;
-        if (!(png_info = png_create_info_struct(png_ptr))) {
-            png_destroy_write_struct(&png_ptr, nullptr);
-            fclose(f);
-            return;
-        }
-        if (setjmp(png_jmpbuf(png_ptr))) {
-            png_destroy_write_struct(&png_ptr, nullptr);
-            fclose(f);
-            return;
-        }
-        png_init_io(png_ptr, f);
-        
-        png_set_IHDR(png_ptr, png_info, width, height, 8, PNG_COLOR_TYPE_RGB,
-            PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
-            PNG_FILTER_TYPE_DEFAULT);
-
-        uchar data[width * height * 3];
-        uchar *rows[height];
-
-        //uchar tempColors = 0;
-        //for (uint i = 0; i < width * height * 4; i += 4) {
-        //    tempColors = imageData[i + 1];
-        //    imageData[i + 1] = imageData[i + 3];
-        //    imageData[i + 3] = tempColors;
-        //}
-        for (uint i = 0; i < height; ++i) {
-            rows[height - i - 1] = data + (i * width * 3);
-            for (uint j = 0; j < width; ++j) {
-                int i1 = (i * width + j) * 3;
-                int i2 = (i * width + j) * 4;
-                data[i1++] = imageData[i2++];
-                data[i1++] = imageData[i2++];
-                data[i1++] = imageData[i2++];
-            }
-        }
-
-        png_set_rows(png_ptr, png_info, rows);
-        png_write_png(png_ptr, png_info, PNG_TRANSFORM_IDENTITY, nullptr);
-        png_write_end(png_ptr, png_info);
-
-        png_destroy_write_struct(&png_ptr, nullptr);
-
-        fclose(f);
+//        FILE *f = fopen(path, "wb");
+//        if (!f) {
+//            printf("Can't open file! %s", path);
+//            return;
+//        }
+//        png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+//        if (!png_ptr) {
+//            fclose(f);
+//            return;
+//        }
+//        png_infop png_info;
+//        if (!(png_info = png_create_info_struct(png_ptr))) {
+//            png_destroy_write_struct(&png_ptr, nullptr);
+//            fclose(f);
+//            return;
+//        }
+//        if (setjmp(png_jmpbuf(png_ptr))) {
+//            png_destroy_write_struct(&png_ptr, nullptr);
+//            fclose(f);
+//            return;
+//        }
+//        png_init_io(png_ptr, f);
+//        
+//        png_set_IHDR(png_ptr, png_info, width, height, 8, PNG_COLOR_TYPE_RGB,
+//            PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
+//            PNG_FILTER_TYPE_DEFAULT);
+//
+//        uchar data[width * height * 3];
+//        uchar *rows[height];
+//
+//        //uchar tempColors = 0;
+//        //for (uint i = 0; i < width * height * 4; i += 4) {
+//        //    tempColors = imageData[i + 1];
+//        //    imageData[i + 1] = imageData[i + 3];
+//        //    imageData[i + 3] = tempColors;
+//        //}
+//        for (uint i = 0; i < height; ++i) {
+//            rows[height - i - 1] = data + (i * width * 3);
+//            for (uint j = 0; j < width; ++j) {
+//                int i1 = (i * width + j) * 3;
+//                int i2 = (i * width + j) * 4;
+//                data[i1++] = imageData[i2++];
+//                data[i1++] = imageData[i2++];
+//                data[i1++] = imageData[i2++];
+//            }
+//        }
+//
+//        png_set_rows(png_ptr, png_info, rows);
+//        png_write_png(png_ptr, png_info, PNG_TRANSFORM_IDENTITY, nullptr);
+//        png_write_end(png_ptr, png_info);
+//
+//        png_destroy_write_struct(&png_ptr, nullptr);
+//
+//        fclose(f);
     }
     
     void Save2dImageToFile(Margolus * CAM, string saveDirectory, cuint& i, cuint& iz = 0) {
@@ -2346,6 +2441,7 @@ private:
     vector<uint> points;
     vector<pSub> iSubs;
     
+    
     vector<LOCATION>    borders;
     vector<statistics>  stats;
     exit_type       et;
@@ -2367,11 +2463,14 @@ private:
     bool showConsole = true;
     bool printCA     = false;
     string outpath   = "";
-    bool useMySQL    = false;
-    MySQL * mySQL;
+    bool useMySQL    = true;
+    
+    //MySQL * mySQL;
     
     vector<VarPointer<int>>       intVars;
     vector<VarPointer<double>>    doubleVars;
+    
+    
 };
 
 int main(int argc, char* argv[]) {
@@ -2381,6 +2480,14 @@ int main(int argc, char* argv[]) {
     //srand((unsigned) time(0));
 #ifdef NORMAL
     Main* pApp = new Main();
+    
+    for (uint i = 1; i < argc; ++i) {
+        if (GetParam(argv[i]) == param_noJson) {
+            pApp->saveFieldJsonFlag = false;
+            break;
+        }  
+    }
+    
     // check print
     for (uint i = 1; i < argc; ++i) {
         if (GetParam(argv[i]) == param_print) {
@@ -2471,6 +2578,9 @@ int main(int argc, char* argv[]) {
     pApp->Run();
     //unsigned elapsed = clock() - t0;
     cout << "Прошло: " << double(clock() - t0) / CLOCKS_PER_SEC << " сек.\n";
+    
+   
+    
 #endif
     return 0;
 }

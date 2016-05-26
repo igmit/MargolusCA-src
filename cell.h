@@ -5,6 +5,8 @@
 #include <vector>
 #include "substance.h"
 #include "types.h"
+#include <cereal/types/vector.hpp>
+
 
 using namespace std;
 
@@ -27,7 +29,18 @@ public:
     
     vector<pSub> GetSubs() const;
     pSub GetSub(uint i) const;
-    
+
+    template<class Archive>
+    void serialize(Archive & archive) {
+        
+        vector<string> substances;
+
+        for (int i = 0; i < subs.size(); i++) {
+            substances.push_back(this->GetSub(i)->GetName());
+        }
+        
+        archive(cereal::make_nvp("s", substances));
+    }
 private:
     vector<pSub> subs;
 };

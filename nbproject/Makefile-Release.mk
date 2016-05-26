@@ -41,8 +41,7 @@ OBJECTFILES= \
 	${OBJECTDIR}/main.o \
 	${OBJECTDIR}/margolus_base.o \
 	${OBJECTDIR}/margolus_quasi.o \
-	${OBJECTDIR}/margolus_quasi_x.o \
-	${OBJECTDIR}/mysqlconnect.o
+	${OBJECTDIR}/margolus_quasi_x.o
 
 
 # C Compiler Flags
@@ -103,11 +102,6 @@ ${OBJECTDIR}/margolus_quasi_x.o: margolus_quasi_x.cpp
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
 	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_quasi_x.o margolus_quasi_x.cpp
-
-${OBJECTDIR}/mysqlconnect.o: mysqlconnect.cpp 
-	${MKDIR} -p ${OBJECTDIR}
-	${RM} "$@.d"
-	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/mysqlconnect.o mysqlconnect.cpp
 
 # Subprojects
 .build-subprojects:

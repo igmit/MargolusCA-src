@@ -11,7 +11,6 @@
       <itemPath>margolus_base.cpp</itemPath>
       <itemPath>margolus_quasi.cpp</itemPath>
       <itemPath>margolus_quasi_x.cpp</itemPath>
-      <itemPath>mysqlconnect.cpp</itemPath>
     </logicalFolder>
     <logicalFolder name="HeaderFiles"
                    displayName="Файлы заголовков"
@@ -26,7 +25,6 @@
       <itemPath>margolus_base.h</itemPath>
       <itemPath>margolus_quasi.h</itemPath>
       <itemPath>margolus_quasi_x.h</itemPath>
-      <itemPath>mysqlconnect.h</itemPath>
       <itemPath>params.h</itemPath>
       <itemPath>program.h</itemPath>
       <itemPath>substance.h</itemPath>
@@ -49,6 +47,9 @@
       <itemPath>Makefile</itemPath>
     </logicalFolder>
   </logicalFolder>
+  <sourceRootList>
+    <Elem>cereal</Elem>
+  </sourceRootList>
   <projectmakefile>Makefile</projectmakefile>
   <confs>
     <conf name="Debug" type="1">
@@ -109,10 +110,6 @@
       <item path="margolus_quasi_x.cpp" ex="false" tool="1" flavor2="0">
       </item>
       <item path="margolus_quasi_x.h" ex="false" tool="3" flavor2="0">
-      </item>
-      <item path="mysqlconnect.cpp" ex="false" tool="1" flavor2="0">
-      </item>
-      <item path="mysqlconnect.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="params.h" ex="false" tool="3" flavor2="0">
       </item>
@@ -193,9 +190,166 @@
       </item>
       <item path="margolus_quasi_x.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="mysqlconnect.cpp" ex="false" tool="1" flavor2="0">
+      <item path="params.h" ex="false" tool="3" flavor2="0">
       </item>
-      <item path="mysqlconnect.h" ex="false" tool="3" flavor2="0">
+      <item path="program.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="substance.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="versioncheck.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Copy_of_Release" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <commandLine>-fopenmp -m32</commandLine>
+          <warningLevel>0</warningLevel>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+          <warningLevel>0</warningLevel>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <linkerTool>
+          <output>${CND_CONF}/margolusca32</output>
+          <linkerAddLib>
+            <pElem>/usr/lib</pElem>
+          </linkerAddLib>
+          <commandlineTool>g++</commandlineTool>
+          <linkerLibItems>
+            <linkerLibFileItem>libconfig-1.5/lib/.libs/libconfig.so</linkerLibFileItem>
+          </linkerLibItems>
+          <commandLine>-fopenmp -lstdc++ -m32 -Wall</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="cell.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="cell.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="cellularautomata.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="cellularautomata.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="configuration.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="functions.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="generate.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="generate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libconfig.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="margolus.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_base.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="margolus_base.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_quasi.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="margolus_quasi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_quasi_x.cpp" ex="false" tool="1" flavor2="0">
+      </item>
+      <item path="margolus_quasi_x.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="params.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="program.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="substance.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="types.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="versioncheck.h" ex="false" tool="3" flavor2="0">
+      </item>
+    </conf>
+    <conf name="Copy-2_of_Release" type="1">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>true</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <compileType>
+        <cTool>
+          <developmentMode>5</developmentMode>
+        </cTool>
+        <ccTool>
+          <developmentMode>5</developmentMode>
+          <architecture>1</architecture>
+          <standard>8</standard>
+          <commandLine>-fopenmp</commandLine>
+        </ccTool>
+        <fortranCompilerTool>
+          <developmentMode>5</developmentMode>
+        </fortranCompilerTool>
+        <asmTool>
+          <developmentMode>5</developmentMode>
+        </asmTool>
+        <linkerTool>
+          <output>${CND_CONF}/margolusca322</output>
+          <linkerAddLib>
+            <pElem>/usr/lib</pElem>
+          </linkerAddLib>
+          <commandlineTool>g++</commandlineTool>
+          <linkerLibItems>
+            <linkerLibLibItem>config++</linkerLibLibItem>
+          </linkerLibItems>
+          <commandLine>-fopenmp -m32 -Wall</commandLine>
+        </linkerTool>
+      </compileType>
+      <item path="cell.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="cell.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="cellularautomata.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="cellularautomata.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="configuration.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="functions.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="generate.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="generate.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="libconfig.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="main.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="margolus.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_base.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="margolus_base.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_quasi.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="margolus_quasi.h" ex="false" tool="3" flavor2="0">
+      </item>
+      <item path="margolus_quasi_x.cpp" ex="false" tool="1" flavor2="8">
+      </item>
+      <item path="margolus_quasi_x.h" ex="false" tool="3" flavor2="0">
       </item>
       <item path="params.h" ex="false" tool="3" flavor2="0">
       </item>

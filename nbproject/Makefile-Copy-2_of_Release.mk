@@ -23,7 +23,7 @@ AS=as
 # Macros
 CND_PLATFORM=GNU-Linux
 CND_DLIB_EXT=so
-CND_CONF=Debug
+CND_CONF=Copy-2_of_Release
 CND_DISTDIR=dist
 CND_BUILDDIR=build
 
@@ -48,8 +48,8 @@ OBJECTFILES= \
 CFLAGS=
 
 # CC Compiler Flags
-CCFLAGS=-O2 -fopenmp
-CXXFLAGS=-O2 -fopenmp
+CCFLAGS=-m32 -fopenmp
+CXXFLAGS=-m32 -fopenmp
 
 # Fortran Compiler Flags
 FFLAGS=
@@ -58,50 +58,50 @@ FFLAGS=
 ASFLAGS=
 
 # Link Libraries and Options
-LDLIBSOPTIONS=-L/usr/lib -lconfig++ -lmysqlcppconn -lpng
+LDLIBSOPTIONS=-L/usr/lib -lconfig++
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
-	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ${CND_CONF}/margolusca
+	"${MAKE}"  -f nbproject/Makefile-${CND_CONF}.mk ${CND_CONF}/margolusca322
 
-${CND_CONF}/margolusca: ${OBJECTFILES}
+${CND_CONF}/margolusca322: ${OBJECTFILES}
 	${MKDIR} -p ${CND_CONF}
-	g++ -o ${CND_CONF}/margolusca ${OBJECTFILES} ${LDLIBSOPTIONS} -fopenmp
+	g++ -o ${CND_CONF}/margolusca322 ${OBJECTFILES} ${LDLIBSOPTIONS} -fopenmp -m32 -Wall
 
 ${OBJECTDIR}/cell.o: cell.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/cell.o cell.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/cell.o cell.cpp
 
 ${OBJECTDIR}/cellularautomata.o: cellularautomata.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/cellularautomata.o cellularautomata.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/cellularautomata.o cellularautomata.cpp
 
 ${OBJECTDIR}/generate.o: generate.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/generate.o generate.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/generate.o generate.cpp
 
 ${OBJECTDIR}/main.o: main.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/main.o main.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/main.o main.cpp
 
 ${OBJECTDIR}/margolus_base.o: margolus_base.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_base.o margolus_base.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_base.o margolus_base.cpp
 
 ${OBJECTDIR}/margolus_quasi.o: margolus_quasi.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_quasi.o margolus_quasi.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_quasi.o margolus_quasi.cpp
 
 ${OBJECTDIR}/margolus_quasi_x.o: margolus_quasi_x.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_quasi_x.o margolus_quasi_x.cpp
+	$(COMPILE.cc) -O2 -std=c++11 -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/margolus_quasi_x.o margolus_quasi_x.cpp
 
 # Subprojects
 .build-subprojects:
@@ -109,7 +109,7 @@ ${OBJECTDIR}/margolus_quasi_x.o: margolus_quasi_x.cpp
 # Clean Targets
 .clean-conf: ${CLEAN_SUBPROJECTS}
 	${RM} -r ${CND_BUILDDIR}/${CND_CONF}
-	${RM} ${CND_CONF}/margolusca
+	${RM} ${CND_CONF}/margolusca322
 
 # Subprojects
 .clean-subprojects:

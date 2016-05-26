@@ -4,6 +4,15 @@
 #include <string.h>
 #include <cmath>
 #include "cellularautomata.h"
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+#include <cereal/archives/json.hpp>
+#include <cereal/access.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/common.hpp>
+#include <cereal/types/array.hpp>
 
 enum Rotate {
     UnMoved,
@@ -38,17 +47,59 @@ struct Energy {
     void UpdateEnergy(double T) {
         energy = *energyH - T * *energyS;
     }
+    
+    template<class Archive>
+    void serialize(Archive & archive)
+    {
+      archive(
+              cereal::make_nvp("name1", name1),
+              cereal::make_nvp("name2", name2),
+              cereal::make_nvp("energy", energy),
+              cereal::make_nvp("H", *energyH),
+              cereal::make_nvp("S", *energyS)
+        );
+    }
 };
 
 struct simpleBlock {
     double energy;
     int move[7];
+    
+    
 };
 
 struct Block : public simpleBlock {
     Cell cells[2][2] = {{Cell(), Cell()},
                         {Cell(), Cell()}};
     Rotate rotate;
+    
+    template<class Archive>
+    void serialize(Archive & archive) {
+
+        if (energy > 0.00000001) {
+
+            string rot;
+            switch (rotate) {
+                case UnMoved: rot = "um";
+                    break;
+                case ClockWice: rot = "cw";
+                    break;
+                case CounterClockWice: rot = "ccw";
+                    break;
+                default: rot = "";
+            }
+
+            if (rot != "") {
+                
+                archive(cereal::make_nvp("cells", cells),
+                        cereal::make_nvp("rotate", rot),
+
+                        cereal::make_nvp("energy", energy)
+                        );
+            }
+
+        }
+    }
 };
 
 struct Block3D : public simpleBlock {
@@ -59,12 +110,79 @@ struct Block3D : public simpleBlock {
     Rotate3D rotate;
 };
 
+struct DataObj {
+    int x;
+    int y;
+    vector<Block> blocks;
+    int selectedBlock;
+    DataObj(int x, int y, vector<Block> blocks, int selectedBlock) :
+        x(x), y(y), blocks(blocks), selectedBlock(selectedBlock) {
+    }
+
+    template<class Archive>
+    void serialize(Archive & archive)
+    {
+      
+      archive(
+              cereal::make_nvp("x", x),
+              cereal::make_nvp("y", y),
+              cereal::make_nvp("blocks", blocks),
+              cereal::make_nvp("selectedBlock", selectedBlock)
+        );
+    }
+};
+
+struct StatisticsRecord{
+    int iteration;
+    int solidCount = 0;
+    int boundaryLayerCount = 0;
+    int adsorbedCount = 0;
+    int activeCount = 0;
+    
+    StatisticsRecord(int iteration, int solidCount, int boundaryLayerCount, int adsorbedCount, int activeCount) :
+        iteration(iteration), solidCount(solidCount), boundaryLayerCount(boundaryLayerCount), adsorbedCount(adsorbedCount), activeCount(activeCount) {
+    }
+
+};
+
+struct FieldCell {
+    int x;
+    int y;
+    Cell cell;
+
+    FieldCell(int x, int y, Cell cell) :
+    x(x), y(y), cell(cell) {
+    }
+
+    template<class Archive>
+    void serialize(Archive & archive) {
+
+        archive(
+                cereal::make_nvp("x", x),
+                cereal::make_nvp("y", y),
+                cereal::make_nvp("types", cell)
+                );
+    }
+
+};
+
+
 class Margolus : public CellularAutomata {
 public:
     Margolus();
     Margolus(Sizes sizes);
     Margolus(cuint& sizeX, cuint& sizeY, cuint sizeZ = 1);
     ~Margolus();
+    
+    string path;
+    int subIteration;
+    bool saveFlag = false;
+    
+    bool saveJsonFlag = true;
+    
+    vector<StatisticsRecord> statisticsData;
+    
+    void saveField(int dx, int dy, bool init);
 
     void Calculation(cuint& dx, cuint& dy);
     void Calculation(cuint& dx, cuint& dy, cuint& dz);
@@ -105,6 +223,12 @@ public:
     uint movement = 0;
     bool finished = false;
     //void PrintBlocks();
+    
+    template<class Archive>
+    void serialize(Archive & archive)
+    {
+      archive();
+    }
     
 protected:
     void PrintBlock(Block & block) const;
